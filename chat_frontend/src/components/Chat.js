@@ -1,13 +1,12 @@
 ﻿import React, { useEffect, useState } from 'react';
 import * as signalR from '@microsoft/signalr';
 
-
-
 const Chat = () => {
     const [connection, setConnection] = useState(null);
     const [user, setUser] = useState('');
     const [message, setMessage] = useState('');
     const [messages, setMessages] = useState([]);
+    const [announcements, setAnnouncements] = useState([]);
     const [role, setRole] = useState('student');
 
     useEffect(() => {
@@ -26,10 +25,15 @@ const Chat = () => {
                     console.log('Connected!');
 
                     connection.on('ReceiveMessage', (user, message, role) => {
-                        console.log("📩 Mottaget meddelande:", user, message, role);  
+                        console.log("📩 Mottaget meddelande:", user, message, role);
                         setMessages(messages => [...messages.slice(-19), { user, message, role }]);
-
                     });
+
+                    connection.on('ReceiveAnnouncement', (user, message) => {
+                        console.log("📢 Mottaget tillkännagivande:", user, message);
+                        setAnnouncements(prev => [...prev, { user, message }]);
+                    });
+
                 })
                 .catch(e => console.log('Connection failed: ', e));
         }
@@ -46,6 +50,17 @@ const Chat = () => {
         }
     };
 
+    const sendAnnouncement = async () => {
+        if (role === "teacher" && message && user && connection.state === signalR.HubConnectionState.Connected) {
+            try {
+                await connection.invoke('SendAnnouncement', user, message, role);
+                setMessage('');
+            } catch (e) {
+                console.error('Announcement sending failed: ', e);
+            }
+        }
+    };
+
     return (
         <div>
             <h2>Chat Room</h2>
@@ -57,11 +72,21 @@ const Chat = () => {
             </select>
 
             <button onClick={sendMessage}>Send</button>
+            {role === "teacher" && (
+                <button onClick={sendAnnouncement}>Send Announcement</button>
+            )}
 
+            <h3>📨 Chat Messages</h3>
             <ul>
-                
                 {messages.map((m, i) => (
                     <li key={i}><b>{m.user} ({m.role})</b>: {m.message}</li>
+                ))}
+            </ul>
+
+            <h3>📢 Announcements</h3>
+            <ul>
+                {announcements.map((a, i) => (
+                    <li key={i}><b>{a.user}:</b> {a.message}</li>
                 ))}
             </ul>
         </div>

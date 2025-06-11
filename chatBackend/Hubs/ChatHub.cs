@@ -10,5 +10,14 @@ namespace ChatBackend.Hubs
             await Clients.All.SendAsync("ReceiveMessage", user, message, role);
         }
 
+        public async Task SendAnnouncement(string user, string message, string role)
+        {
+            if (role.ToLower() == "teacher")
+            {
+                await Clients.All.SendAsync("ReceiveAnnouncement", user, message);
+            }
+        }
+
+
     }
 }
